@@ -1,0 +1,45 @@
+# 缺陷分类配置
+
+data:
+  data_dir: "data"
+  train_split: "train"
+  val_split: "val"
+  test_split: "test"
+  
+model:
+  name: "defect_classifier"
+  backbone: "efficientnet_b0"  # efficientnet_b0/b1/b2, resnet50
+  pretrained: true
+  num_classes: 5
+  crop_size: 256
+  use_context: 0.2  # 上下文比例
+  
+training:
+  batch_size: 32
+  epochs: 50
+  lr: 0.0001
+  weight_decay: 0.0001
+  num_workers: 4
+  
+classes:
+  - scratch    # 划痕
+  - dent       # 凹陷
+  - spot       # 污点
+  - crack      # 裂纹
+  - bubble     # 气泡
+
+# 特征配置
+features:
+  shape:
+    - area
+    - perimeter
+    - circularity
+    - rectness
+    - hu_moments
+    - fourier
+  position:
+    - cx_norm
+    - cy_norm
+    - min_edge_dist
+    - region
+    - orientation

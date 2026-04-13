@@ -1,0 +1,15 @@
+{
+  "annotations": [
+    {"id": 1, "image_name": "img_001.jpg", "bbox": [2500, 1200, 80, 12], "class": "scratch"},
+    {"id": 2, "image_name": "img_001.jpg", "bbox": [5120, 3210, 45, 45], "class": "dent"},
+    {"id": 3, "image_name": "img_002.jpg", "bbox": [1810, 810, 25, 25], "class": "spot"},
+    {"id": 4, "image_name": "img_002.jpg", "bbox": [6250, 1510, 150, 8], "class": "crack"},
+    {"id": 5, "image_name": "img_003.jpg", "bbox": [3020, 2520, 35, 35], "class": "bubble"},
+    {"id": 6, "image_name": "img_003.jpg", "bbox": [4520, 1810, 60, 8], "class": "scratch"},
+    {"id": 7, "image_name": "img_004.jpg", "bbox": [1220, 3520, 40, 40], "class": "dent"},
+    {"id": 8, "image_name": "img_005.jpg", "bbox": [7010, 920, 20, 20], "class": "spot"},
+    {"id": 9, "image_name": "img_005.jpg", "bbox": [5520, 2810, 120, 6], "class": "crack"},
+    {"id": 10, "image_name": "img_006.jpg", "bbox": [2020, 1520, 30, 30], "class": "bubble"}
+  ],
+  "classes": ["scratch", "dent", "spot", "crack", "bubble"]
+}

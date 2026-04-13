@@ -1,0 +1,8 @@
+{
+  "annotations": [
+    {"id": 101, "image_name": "img_v001.jpg", "bbox": [2820, 1410, 70, 10], "class": "scratch"},
+    {"id": 102, "image_name": "img_v001.jpg", "bbox": [4820, 2920, 38, 38], "class": "dent"},
+    {"id": 103, "image_name": "img_v002.jpg", "bbox": [1520, 620, 22, 22], "class": "spot"}
+  ],
+  "classes": ["scratch", "dent", "spot", "crack", "bubble"]
+}
