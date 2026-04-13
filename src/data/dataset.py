@@ -1,5 +1,5 @@
 """
-缺陷数据集 - 支持 cx, cy, w, h 格式
+缺陷数据集 - 支持 train/val/test 三个数据集
 """
 import os
 import json
@@ -19,8 +19,15 @@ class DefectDataset(Dataset):
     
     目录结构:
     data/
-        images/          # 高分辨率原图
-        annotations/     # 标注文件
+        train/
+            annotations.json
+            images/
+        val/
+            annotations.json
+            images/
+        test/
+            annotations.json
+            images/
     """
     
     def __init__(
@@ -31,35 +38,53 @@ class DefectDataset(Dataset):
         crop_size: int = 256,
         use_context: float = 0.2,
     ):
+        """
+        Args:
+            data_dir: 数据根目录 (如 'data')
+            split: 'train' | 'val' | 'test'
+            transform: 数据增强
+            crop_size: 裁剪尺寸
+            use_context: 上下文比例
+        """
         self.data_dir = Path(data_dir)
         self.split = split
+        self.split_dir = self.data_dir / split
         self.transform = transform
         self.crop_size = crop_size
         self.use_context = use_context
         
-        # 加载标注
+        # 加载标注 (新路径: data/{split}/annotations.json)
         self.annotations = self._load_annotations()
         
         # 类别映射
         self.classes = sorted(set(a['class'] for a in self.annotations))
         self.class_to_idx = {c: i for i, c in enumerate(self.classes)}
+        self.idx_to_class = {i: c for c, i in self.class_to_idx.items()}
         
     def _load_annotations(self) -> List[Dict]:
         """加载标注"""
-        ann_file = self.data_dir / "annotations" / f"{self.split}.json"
+        # 新路径: data/{train,val,test}/annotations.json
+        ann_file = self.split_dir / "annotations.json"
         
         if ann_file.exists():
             with open(ann_file, 'r') as f:
                 data = json.load(f)
             return data.get('annotations', [])
         
+        # 旧路径兼容: data/annotations/{split}.json
+        ann_file = self.data_dir / "annotations" / f"{self.split}.json"
+        if ann_file.exists():
+            with open(ann_file, 'r') as f:
+                data = json.load(f)
+            return data.get('annotations', [])
+        
         # CSV格式
-        ann_file = self.data_dir / "annotations" / f"{self.split}.csv"
+        ann_file = self.split_dir / "annotations.csv"
         if ann_file.exists():
             df = pd.read_csv(ann_file)
             return df.to_dict('records')
         
-        raise FileNotFoundError(f"No annotations found: {ann_file}")
+        raise FileNotFoundError(f"No annotations found: {self.split_dir}/")
     
     def __len__(self) -> int:
         return len(self.annotations)
@@ -67,8 +92,12 @@ class DefectDataset(Dataset):
     def __getitem__(self, idx: int) -> Dict:
         ann = self.annotations[idx]
         
-        # 加载图像
-        img_path = self.data_dir / "images" / ann['image_name']
+        # 加载图像 (优先从 split 目录查找)
+        img_path = self.split_dir / "images" / ann['image_name']
+        if not img_path.exists():
+            # 回退到 data/images/
+            img_path = self.data_dir / "images" / ann['image_name']
+        
         image = cv2.imread(str(img_path))
         if image is None:
             # 如果图像不存在，创建空白图像用于测试
@@ -87,6 +116,10 @@ class DefectDataset(Dataset):
         crop = self._crop_defect(image, bbox_xywh)
         crop = cv2.resize(crop, (self.crop_size, self.crop_size))
         
+        # 数据增强 (训练时)
+        if self.transform and self.split == 'train':
+            crop = self.transform(crop)
+        
         # 转换为tensor
         crop_tensor = torch.from_numpy(crop).permute(2, 0, 1).float() / 255.0
         
@@ -104,10 +137,11 @@ class DefectDataset(Dataset):
             'label': label,
             'image_id': ann.get('id', idx),
             'bbox': ann['bbox'],  # [cx, cy, w, h]
+            'class_name': ann['class'],
         }
     
     def _crop_defect(self, image: np.ndarray, bbox: List[int]) -> np.ndarray:
-        """裁剪缺陷区域 (输入为 x, y, w, h 格式)"""
+        """裁剪缺陷区域"""
         x, y, w, h = bbox
         
         # 添加上下文
@@ -121,18 +155,16 @@ class DefectDataset(Dataset):
         x2 = min(w_img, int(cx + pw/2))
         y2 = min(h_img, int(cy + ph/2))
         
-        # 确保有效裁剪
         if x2 <= x1 or y2 <= y1:
             return np.zeros((int(ph), int(pw), 3), dtype=np.uint8)
         
         return image[y1:y2, x1:x2]
     
     def _extract_position_features(self, bbox: List[float], img_shape: Tuple) -> List[float]:
-        """提取位置特征 (输入为 cx, cy, w, h 格式)"""
+        """提取位置特征"""
         from ..features.position import PositionFeatureExtractor
         extractor = PositionFeatureExtractor()
         
-        # 将 cx, cy, w, h 转换为 x, y, w, h
         cx, cy, w, h = bbox
         x = cx - w / 2
         y = cy - h / 2
@@ -140,7 +172,6 @@ class DefectDataset(Dataset):
         
         feat = extractor.extract(bbox_xywh, img_shape)
         
-        # 展平 (与之前相同)
         features = [
             feat['cx_norm'], feat['cy_norm'],
             feat['rel_width'], feat['rel_height'], feat['rel_area'],
@@ -149,18 +180,32 @@ class DefectDataset(Dataset):
             feat['orientation'], feat['density'],
         ]
         return features
+    
+    def get_class_distribution(self) -> Dict[str, int]:
+        """获取类别分布"""
+        dist = {}
+        for ann in self.annotations:
+            cls = ann['class']
+            dist[cls] = dist.get(cls, 0) + 1
+        return dist
 
 
-def create_dataloaders(data_dir: str, batch_size: int = 32, num_workers: int = 4):
-    """创建数据加载器"""
+def create_dataloaders(
+    data_dir: str, 
+    batch_size: int = 32, 
+    num_workers: int = 4,
+    crop_size: int = 256,
+    use_context: float = 0.2,
+):
+    """创建 train/val/test 三个数据加载器"""
     from torch.utils.data import DataLoader
     
-    train_ds = DefectDataset(data_dir, split="train")
-    val_ds = DefectDataset(data_dir, split="val")
-    test_ds = DefectDataset(data_dir, split="test")
+    train_ds = DefectDataset(data_dir, split="train", crop_size=crop_size, use_context=use_context)
+    val_ds = DefectDataset(data_dir, split="val", crop_size=crop_size, use_context=use_context)
+    test_ds = DefectDataset(data_dir, split="test", crop_size=crop_size, use_context=use_context)
     
-    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers)
-    test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
+    val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True)
+    test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True)
     
     return train_loader, val_loader, test_loader

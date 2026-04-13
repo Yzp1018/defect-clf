@@ -1,0 +1,10 @@
+{
+  "annotations": [
+    {"id": 201, "image_name": "img_t001.jpg", "bbox": [3200, 1800, 55, 8], "class": "scratch"},
+    {"id": 202, "image_name": "img_t001.jpg", "bbox": [6200, 2500, 32, 32], "class": "dent"},
+    {"id": 203, "image_name": "img_t002.jpg", "bbox": [1500, 900, 18, 18], "class": "spot"},
+    {"id": 204, "image_name": "img_t003.jpg", "bbox": [5800, 3200, 100, 6], "class": "crack"},
+    {"id": 205, "image_name": "img_t004.jpg", "bbox": [2500, 1800, 28, 28], "class": "bubble"}
+  ],
+  "classes": ["scratch", "dent", "spot", "crack", "bubble"]
+}
