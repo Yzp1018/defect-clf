@@ -1,0 +1,1 @@
+{"annotations": [{"id": 1, "image_name": "test1.jpg", "bbox": [100, 100, 50, 50], "class": "scratch"}, {"id": 2, "image_name": "test2.jpg", "bbox": [200, 200, 80, 60], "class": "dent"}, {"id": 3, "image_name": "test3.jpg", "bbox": [150, 150, 40, 40], "class": "spot"}]}
