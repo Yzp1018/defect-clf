@@ -1,53 +1,6 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# 虚拟环境
-venv/
-env/
-ENV/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# 训练输出
-outputs/
-logs/
-*.pth
-*.pt
-*.onnx
-
-# 数据 (仅保留结构)
-data/images/*
-!data/images/.gitkeep
-
-# Mac
-.DS_Store
-
-# Jupyter
-.ipynb_checkpoints/
-
-# TensorBoard
-runs/
-events.out.tfevents.*
+```
+# Documentation and test data
+AUGMENT_GUIDE.md
+CONSISTENCY_REPORT.md
+data/test/annotations.json
+```

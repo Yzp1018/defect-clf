@@ -8,8 +8,10 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from pathlib import Path
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Callable
 import pandas as pd
+
+from .augment import DataAugmentor
 
 
 class DefectDataset(Dataset):
@@ -37,14 +39,18 @@ class DefectDataset(Dataset):
         transform=None,
         crop_size: int = 256,
         use_context: float = 0.2,
+        enable_augment: bool = True,
+        augment_config: Optional[Dict] = None,
     ):
         """
         Args:
             data_dir: 数据根目录 (如 'data')
             split: 'train' | 'val' | 'test'
-            transform: 数据增强
+            transform: 数据增强 (已废弃，使用 enable_augment)
             crop_size: 裁剪尺寸
             use_context: 上下文比例
+            enable_augment: 是否启用数据增强
+            augment_config: 数据增强配置
         """
         self.data_dir = Path(data_dir)
         self.split = split
@@ -52,6 +58,14 @@ class DefectDataset(Dataset):
         self.transform = transform
         self.crop_size = crop_size
         self.use_context = use_context
+        
+        # 数据增强器
+        self.enable_augment = enable_augment and (split == 'train')
+        if self.enable_augment:
+            aug_cfg = augment_config or {}
+            self.augmentor = DataAugmentor(img_size=crop_size, **aug_cfg)
+        else:
+            self.augmentor = None
         
         # 加载标注 (新路径: data/{split}/annotations.json)
         self.annotations = self._load_annotations()
@@ -117,7 +131,9 @@ class DefectDataset(Dataset):
         crop = cv2.resize(crop, (self.crop_size, self.crop_size))
         
         # 数据增强 (训练时)
-        if self.transform and self.split == 'train':
+        if self.augmentor is not None:
+            crop = self.augmentor(crop)
+        elif self.transform and self.split == 'train':
             crop = self.transform(crop)
         
         # 转换为tensor
