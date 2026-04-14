@@ -20,6 +20,9 @@ training:
   lr: 0.0001
   weight_decay: 0.0001
   num_workers: 4
+  loss_type: "focal"  # focal | ce | smooth_ce | combined
+  focal_gamma: 2.0
+  label_smoothing: 0.1
   
 classes:
   - scratch    # 划痕
@@ -43,3 +46,33 @@ features:
     - min_edge_dist
     - region
     - orientation
+
+# 数据增强配置（针对工业缺陷分类优化）
+augmentation:
+  product_symmetric: false  # ⚠️ 重要：大多数工业产品不对称，禁用几何变换
+  hflip_prob: 0.0           # 水平翻转概率（仅当 symmetric=true 时有效）
+  vflip_prob: 0.0           # 垂直翻转概率
+  rotate_prob: 0.0          # 旋转概率
+  rotate_range: [-5, 5]     # 小角度旋转范围
+  
+  # 光度变换（模拟光照变化）
+  color_jitter_prob: 0.5
+  brightness_range: [0.8, 1.2]
+  contrast_range: [0.8, 1.2]
+  
+  # 噪声（模拟相机传感器噪声）
+  noise_prob: 0.4
+  noise_std: 15
+  
+  # 模糊（模拟相机抖动/对焦不准）
+  blur_prob: 0.3
+  
+  # 遮挡（强制模型关注局部特征）
+  cutout_prob: 0.4
+  cutout_ratio: 0.15
+  cutout_num: 2
+
+# 说明：
+# - Mixup/CutMix 已禁用：会创造虚假缺陷形态
+# - 几何变换默认禁用：除非产品物理对称
+# - 重点增强：噪声、模糊、光照变化、Cutout

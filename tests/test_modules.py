@@ -82,6 +82,7 @@ class TestDataAugmentation(unittest.TestCase):
         self.assertEqual(augmented.dtype, np.uint8)
     
     def test_mixup(self):
+        """测试 Mixup - 在缺陷分类场景中默认禁用"""
         from data.augment import mixup
         
         img1 = np.random.randint(0, 255, (256, 256, 3), dtype=np.uint8)
@@ -92,10 +93,11 @@ class TestDataAugmentation(unittest.TestCase):
         self.assertEqual(mixed.shape, img1.shape)
         self.assertEqual(label1, 0)
         self.assertEqual(label2, 1)
-        self.assertGreater(lam, 0)
-        self.assertLess(lam, 1)
+        # ⚠️ 在缺陷分类场景中，Mixup 默认禁用，返回原图和 lam=1.0
+        self.assertEqual(lam, 1.0)
     
     def test_cutmix(self):
+        """测试 CutMix - 在缺陷分类场景中默认禁用"""
         from data.augment import cutmix
         
         img1 = np.random.randint(0, 255, (256, 256, 3), dtype=np.uint8)
@@ -104,8 +106,8 @@ class TestDataAugmentation(unittest.TestCase):
         mixed, label1, label2, lam = cutmix(img1, img2, 0, 1, beta=1.0)
         
         self.assertEqual(mixed.shape, img1.shape)
-        self.assertGreater(lam, 0)
-        self.assertLess(lam, 1)
+        # ⚠️ 在缺陷分类场景中，CutMix 默认禁用，返回原图和 lam=1.0
+        self.assertEqual(lam, 1.0)
 
 
 class TestModel(unittest.TestCase):
